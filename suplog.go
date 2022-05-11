@@ -13,7 +13,6 @@ import (
 	debugHook "github.com/xlab/suplog/hooks/debug"
 
 	"github.com/sirupsen/logrus"
-	"github.com/xlab/closer"
 	"github.com/xlab/suplog/stackcache"
 )
 
@@ -29,7 +28,7 @@ func NewLogger(wr io.Writer, formatter Formatter, hooks ...Hook) Logger {
 			Formatter: formatter,
 			Hooks:     make(LevelHooks),
 			Level:     DebugLevel,
-			ExitFunc:  closer.Exit,
+			ExitFunc:  os.Exit,
 		},
 
 		writer:           wr,
@@ -78,7 +77,7 @@ func (l *suplogger) initOnce() {
 			Formatter: new(TextFormatter),
 			Hooks:     make(LevelHooks),
 			Level:     DebugLevel,
-			ExitFunc:  closer.Exit,
+			ExitFunc:  os.Exit,
 		}
 
 		l.entry = l.logger.WithContext(context.Background())
