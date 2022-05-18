@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	blobHook "github.com/xlab/suplog/hooks/blob"
-	bugsnagHook "github.com/xlab/suplog/hooks/bugsnag"
-	debugHook "github.com/xlab/suplog/hooks/debug"
+	blobHook "github.com/InjectiveLabs/suplog/hooks/blob"
+	bugsnagHook "github.com/InjectiveLabs/suplog/hooks/bugsnag"
+	debugHook "github.com/InjectiveLabs/suplog/hooks/debug"
 
 	"github.com/sirupsen/logrus"
-	"github.com/xlab/suplog/stackcache"
+	"github.com/InjectiveLabs/suplog/stackcache"
 )
 
 // NewLogger constructs a new suplogger.
@@ -93,7 +93,7 @@ const defaultStackSearchOffset = 1
 // reloadStackTraceCache allows to reload the stack trace reporter with new offset,
 // allowing to wrap suplogger into other funcs.
 func (l *suplogger) reloadStackTraceCache() {
-	l.stack = stackcache.New(defaultStackSearchOffset, l.stackTraceOffset, "github.com/xlab/suplog")
+	l.stack = stackcache.New(defaultStackSearchOffset, l.stackTraceOffset, "github.com/InjectiveLabs/suplog")
 }
 
 // addDefaultHooks initializes default hooks and additional hooks

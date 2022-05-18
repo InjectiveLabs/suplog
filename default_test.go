@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	. "github.com/xlab/suplog"
-	bugsnagHook "github.com/xlab/suplog/hooks/bugsnag"
-	debugHook "github.com/xlab/suplog/hooks/debug"
-	"github.com/xlab/suplog/wrapped-test"
+	. "github.com/InjectiveLabs/suplog"
+	bugsnagHook "github.com/InjectiveLabs/suplog/hooks/bugsnag"
+	debugHook "github.com/InjectiveLabs/suplog/hooks/debug"
+	"github.com/InjectiveLabs/suplog/wrapped-test"
 )
 
 func TestAll(t *testing.T) {

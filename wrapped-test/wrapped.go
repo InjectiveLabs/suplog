@@ -2,7 +2,7 @@
 package wrapped
 
 import (
-	log "github.com/xlab/suplog"
+	log "github.com/InjectiveLabs/suplog"
 )
 
 // TestWrapper is a primitive to test error logging from an extra

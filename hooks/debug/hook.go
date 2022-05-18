@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"github.com/xlab/suplog/stackcache"
+	"github.com/InjectiveLabs/suplog/stackcache"
 )
 
 // HookOptions allows to set additional Hook options.
@@ -17,7 +17,7 @@ type HookOptions struct {
 	// Levels enables this hook for all listed levels.
 	Levels []logrus.Level
 	// PathSegmentsLimit allows to trim amount of source code file path segments.
-	// Untrimmed: /Users/xlab/Documents/dev/go/src/github.com/xlab/suplog/default_test.go
+	// Untrimmed: /Users/xlab/Documents/dev/go/src/github.com/InjectiveLabs/suplog/default_test.go
 	// Trimmed (3): xlab/suplog/default_test.go
 	PathSegmentsLimit int
 	// StackTraceOffset allows to wrap logger into greater stack depth and still
@@ -65,7 +65,7 @@ func NewHook(logger RootLogger, opt *HookOptions) logrus.Hook {
 	return &hook{
 		opt:    opt,
 		logger: logger,
-		stack:  stackcache.New(defaultStackSearchOffset, opt.StackTraceOffset, "github.com/xlab/suplog"),
+		stack:  stackcache.New(defaultStackSearchOffset, opt.StackTraceOffset, "github.com/InjectiveLabs/suplog"),
 	}
 }
 

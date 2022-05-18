@@ -1,4 +1,4 @@
-# Suplog [![GoDoc](https://godoc.org/github.com/xlab/suplog?status.svg)](https://godoc.org/github.com/xlab/suplog)
+# Suplog [![GoDoc](https://godoc.org/github.com/InjectiveLabs/suplog?status.svg)](https://godoc.org/github.com/InjectiveLabs/suplog)
 
 A supercharged logging framework based upon [github.com/sirupsen/logrus](https://github.com/sirupsen/logrus), which enables structured, leveled logging with hooks support. Hooks are middleware modules for logging that can augment message being logged or even send it to a remote server.
 
@@ -17,9 +17,9 @@ Available formatters:
 * `suplog.TextFormatter` — suplogs log entries as text lines for TTY or without TTY colors.
 
 Available hooks:
-* [github.com/xlab/suplog/hooks/debug](https://github.com/xlab/suplog/blob/master/hooks/debug/hook.go#L14)
-* [github.com/xlab/suplog/hooks/blob](https://github.com/xlab/suplog/blob/master/hooks/blob/hook.go#L14)
-* [github.com/xlab/suplog/hooks/bugsnag](https://github.com/xlab/suplog/blob/master/hooks/bugsnag/hook.go#L13)
+* [github.com/InjectiveLabs/suplog/hooks/debug](https://github.com/InjectiveLabs/suplog/blob/master/hooks/debug/hook.go#L14)
+* [github.com/InjectiveLabs/suplog/hooks/blob](https://github.com/InjectiveLabs/suplog/blob/master/hooks/blob/hook.go#L14)
+* [github.com/InjectiveLabs/suplog/hooks/bugsnag](https://github.com/InjectiveLabs/suplog/blob/master/hooks/bugsnag/hook.go#L13)
 
 ## Leveled Logging
 
@@ -93,7 +93,7 @@ During suplog initialisation it is possible to specify suplog hooks. Hooks are p
 Debug hook adds information about caller fn name and position is source code. By default applies only to `Debug` and `Trace` entries, but can be extended to any level.
 
 ```go
-import debugHook github.com/xlab/suplog/hooks/debug
+import debugHook github.com/InjectiveLabs/suplog/hooks/debug
 ```
 
 Options:
@@ -105,7 +105,7 @@ type HookOptions struct {
     // Levels enables this hook for all listed levels.
     Levels []logrus.Level
     // PathSegmentsLimit allows to trim amount of source code file path segments.
-    // Untrimmed: /Users/xlab/Documents/dev/go/src/github.com/xlab/suplog/default_test.go
+    // Untrimmed: /Users/xlab/Documents/dev/go/src/github.com/InjectiveLabs/suplog/default_test.go
     // Trimmed (3): xlab/suplog/default_test.go
     PathSegmentsLimit int
 }
@@ -118,7 +118,7 @@ If not specified, AppVersion is set from **APP_VERSION** env variable. PathSegme
 Bugsnag hook implements integration with [Bugsnag.com](https://app.bugsnag.com) service for error tracing and monitoring. It will send any entry above warning level, including its meta data and stack trace.
 
 ```go
-import bugsnagHook github.com/xlab/suplog/hooks/bugsnag
+import bugsnagHook github.com/InjectiveLabs/suplog/hooks/bugsnag
 ```
 
 Options:
@@ -150,7 +150,7 @@ The hook can be enabled in default suplogger by setting OS ENV variables:
 Blob hook allows to upload heavy blobs of data such as request and response HTML / JSON dumps into a remote log storage. This hook utilizes Amazon S3 interface, therefore is compatible with any S3-like API.
 
 ```go
-import blobHook github.com/xlab/suplog/hooks/blob
+import blobHook github.com/InjectiveLabs/suplog/hooks/blob
 ```
 
 Options:
