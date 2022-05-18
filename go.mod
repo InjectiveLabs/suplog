@@ -1,4 +1,4 @@
-module github.com/xlab/suplog
+module github.com/InjectiveLabs/suplog
 
 go 1.15
 
