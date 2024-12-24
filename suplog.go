@@ -13,13 +13,14 @@ import (
 	debugHook "github.com/InjectiveLabs/suplog/hooks/debug"
 
 	"github.com/sirupsen/logrus"
+
 	"github.com/InjectiveLabs/suplog/stackcache"
 )
 
 // NewLogger constructs a new suplogger.
 func NewLogger(wr io.Writer, formatter Formatter, hooks ...Hook) Logger {
 	if formatter == nil {
-		formatter = new(TextFormatter)
+		formatter = new(JSONFormatter)
 	}
 
 	log := &suplogger{
@@ -74,7 +75,7 @@ func (l *suplogger) initOnce() {
 		// otherwise init output with conservative defaults
 		l.logger = &logrus.Logger{
 			Out:       l.writer,
-			Formatter: new(TextFormatter),
+			Formatter: new(JSONFormatter),
 			Hooks:     make(LevelHooks),
 			Level:     DebugLevel,
 			ExitFunc:  os.Exit,
