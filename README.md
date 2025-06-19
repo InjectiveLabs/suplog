@@ -189,3 +189,60 @@ log.WithField("blob", testBlob).Infoln("test is running, trying to submit blob")
 ```
 
 Where field name should be exactly `blob` and `testBlob` should be `[]byte`.
+
+# Conditional triggers
+It will only log if the condition is met, otherwise it will return a `NoOp` logger.
+
+## `OnCondition`
+
+### Description
+Returns a `ConditionLogger` if the provided condition is `true`. If the condition is `false`, it returns a `NoOp` logger. If a logger is provided in the variadic argument, only the first logger is used.
+
+### Behavior
+- If `cond` is `true`, the function returns the first logger provided (or the default logger if none is provided).
+- If `cond` is `false`, it returns a `NoOp` logger.
+
+### Usage
+```go
+log.OnCondition(x > 0).WithField("foo", "bar").Info("This will log because condition is true")
+````
+
+---
+
+## `OnErr`
+Logs only if the provided error is not `nil`.
+
+### Description
+Returns a `ConditionLogger` if the provided error is not `nil`. If the error is `nil`, it returns a `NoOp` logger. If a logger is provided in the variadic argument, only the first logger is used.
+
+### Parameters
+- `err error`: The error to check.
+- `logger ...Logger`: Optional variadic argument for the logger to use.
+
+### Behavior
+- If `err` is not `nil`, the function returns a logger with the error attached.
+- If `err` is `nil`, it returns a `NoOp` logger.
+ 
+### Usage
+```go
+log.OnError(someErr).WithField("foo", "bar").Info("something happened")
+```
+
+---
+
+## `OnTime`
+Receives a ticker/timer, if if the time is met, it will log. This is useful for preventing excessive logging
+when log frequency is too high, similar to sampling
+
+### Description
+Returns a `ConditionLogger` if the provided tick channel receives a tick. If no tick is received, it returns a `NoOp` logger. The function checks the channel non-blockingly.
+
+### Behavior
+- If a tick is received from the channel, the function returns the first logger provided (or the default logger if none is provided).
+- If no tick is received, it returns a `NoOp` logger.
+
+### Usage
+```go
+ticker := time.NewTicker(1 * time.Minute)
+log.OnTime(ticker.C).WithField("foo", "bar").Info("This will log every minute at most")
+```

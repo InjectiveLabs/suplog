@@ -1,11 +1,11 @@
 package suplog_test
 
 import (
+	"errors"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	. "github.com/InjectiveLabs/suplog"
 	bugsnagHook "github.com/InjectiveLabs/suplog/hooks/bugsnag"
 	debugHook "github.com/InjectiveLabs/suplog/hooks/debug"
