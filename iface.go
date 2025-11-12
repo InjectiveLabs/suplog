@@ -54,6 +54,19 @@ type Logger interface {
 	Errorln(args ...interface{})
 	Fatalln(args ...interface{})
 	Panicln(args ...interface{})
+
+	// defer logging methods
+
+	// Defer adds a key and a value to the log entry, where the value is
+	// evaluated at the time of logging; value must be a pointer to a scalar type.
+	Defer(key string, value interface{}) Logger
+
+	// DeferError adds an error to the log entry, where the error is evaluated
+	// at the time of logging.
+	DeferError(err *error) Logger
+
+	// ErrLevel overwrites the log level if error field is non-nil
+	ErrLevel(level Level) Logger
 }
 
 type LoggerConfigurator interface {

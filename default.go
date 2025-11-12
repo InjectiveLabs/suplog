@@ -77,6 +77,18 @@ func WithTime(t time.Time) Logger {
 	return DefaultLogger.WithTime(t)
 }
 
+func DeferError(err *error) Logger {
+	return DefaultLogger.DeferError(err)
+}
+
+func Defer(k string, v interface{}) Logger {
+	return DefaultLogger.Defer(k, v)
+}
+
+func ErrLevel(level Level) Logger {
+	return DefaultLogger.ErrLevel(level)
+}
+
 // Part B: Formatted logging methods
 
 func Logf(level Level, format string, args ...interface{}) {
