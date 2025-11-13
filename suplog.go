@@ -41,6 +41,8 @@ func NewLogger(wr io.Writer, formatter Formatter, hooks ...Hook) Logger {
 	log.reloadStackTraceCache()
 	log.entry = log.logger.WithContext(context.Background())
 
+	log.logger.AddHook(&deferredHook{})
+	log.logger.AddHook(&errLevelHook{}) // needs to be after deferredHook
 	for _, h := range hooks {
 		log.AddHook(h)
 	}
@@ -85,6 +87,8 @@ func (l *suplogger) initOnce() {
 		l.reloadStackTraceCache()
 		l.addDefaultHooks()
 		l.mux = new(sync.Mutex)
+		l.logger.AddHook(&deferredHook{})
+		l.logger.AddHook(&errLevelHook{}) // needs to be after deferredHook
 		l.initDone = true
 	})
 }
@@ -141,6 +145,11 @@ func (l *suplogger) WithFields(fields Fields) Logger {
 // Add an error as single field to the log entry.  All it does is call
 // `WithError` for the given `error`.
 func (l *suplogger) WithError(err error) Logger {
+	if err == nil {
+		// nothing to add
+		return l
+	}
+
 	l.initOnce()
 	outCopy := l.copy()
 	outCopy.entry = l.entry.WithError(err)
@@ -162,6 +171,26 @@ func (l *suplogger) WithTime(t time.Time) Logger {
 	l.initOnce()
 	outCopy := l.copy()
 	outCopy.entry = l.entry.WithTime(t)
+
+	return outCopy
+}
+
+func (l *suplogger) DeferError(err *error) Logger {
+	return l.WithField(deferredFieldKey+logrus.ErrorKey, err)
+}
+
+func (l *suplogger) Defer(k string, v interface{}) Logger {
+	return l.WithField(deferredFieldKey+k, v)
+}
+
+func (l *suplogger) ErrLevel(level Level) Logger {
+	l.initOnce()
+
+	// prepare new context with error level
+	ctx := context.WithValue(l.entry.Context, errLvlCtxKey{}, level)
+
+	outCopy := l.copy()
+	outCopy.entry = l.entry.WithContext(ctx)
 
 	return outCopy
 }

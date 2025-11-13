@@ -54,6 +54,18 @@ func (n NoOpLogger) WithTime(t time.Time) Logger {
 	return n
 }
 
+func (n NoOpLogger) DeferError(err *error) Logger {
+	return n
+}
+
+func (n NoOpLogger) Defer(k string, v interface{}) Logger {
+	return n
+}
+
+func (n NoOpLogger) ErrLevel(level Level) Logger {
+	return n
+}
+
 func (n NoOpLogger) Logf(level Level, format string, args ...interface{}) {
 
 }
