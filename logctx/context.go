@@ -19,6 +19,21 @@ func WithLogger(ctx context.Context, logger suplog.Logger) context.Context {
 	return context.WithValue(ctx, ctxLogKey{}, &loggerCtx{logger: logger})
 }
 
+// WithErr adds an error field to the logger in the context (thread-safe).
+func WithErr(ctx context.Context, err error) context.Context {
+	l, ok := fromContext(ctx)
+	if !ok {
+		return ctx
+	}
+
+	l.mx.Lock()
+	defer l.mx.Unlock()
+
+	l.logger = l.logger.WithError(err)
+
+	return ctx
+}
+
 // WithField adds a single field to the logger in the context (thread-safe).
 func WithField(ctx context.Context, field string, value interface{}) context.Context {
 	l, ok := fromContext(ctx)

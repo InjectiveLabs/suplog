@@ -38,14 +38,13 @@ func TestContextLogging(t *testing.T) {
 			// to add fields we MUST use the context helpers
 			WithField(ctx, "pre", "true")
 
-			defer func() {
-				WithField(ctx, "defer", "true")
+				defer func() {
+					WithField(ctx, "defer", "true")
+					WithErr(ctx, err)
 
-				// recover the modified logger from context
-				Logger(ctx).
-					WithError(err).
-					Debug("chain executed")
-			}()
+					// recover the modified logger from context
+					Logger(ctx).Debug("chain executed")
+				}()
 
 			err = next(ctx)
 
