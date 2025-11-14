@@ -246,3 +246,67 @@ Returns a `ConditionLogger` if the provided tick channel receives a tick. If no 
 ticker := time.NewTicker(1 * time.Minute)
 log.OnTime(ticker.C).WithField("foo", "bar").Info("This will log every minute at most")
 ```
+
+## Context Logger (`logcontext`)
+
+This package provides a mechanism for storing a `suplog.Logger` within a `context.Context` and allowing it to be mutated (e.g., adding new fields) by downstream functions in a **thread-safe** manner.
+
+Usage
+1. Initialization (Top-Level Middleware)
+   Initialize the logger once at the start of your request, typically in the first middleware.
+
+```go
+func LoggingMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Create your base logger
+        baseLogger := suplog.NewLogger(/* ... */)
+
+        // Put it in the context using the package
+        ctx := logctx.WithLogger(r.Context(), baseLogger)
+        
+        // The defer runs last, after all other handlers
+        defer func() {
+            // Get the logger (which now has all fields) and log
+            finalLogger := logctx.Logger(ctx)
+            finalLogger.Info("Request finished")
+        }()
+
+        // Pass the context down the chain
+        next.ServeHTTP(w, r.WithContext(ctx))
+    })
+}
+```
+2. Adding Fields (Downstream Middlewares/Handlers)
+   Any other function can now add fields. They do not need to create a new context, as the logger is mutated in place.
+
+```go
+func AuthMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    // This mutates the logger in the context
+        logctx.WithField(r.Context(), "user_id", "user-abc")
+        next.ServeHTTP(w, r)
+    })
+}
+
+func MyHandler(w http.ResponseWriter, r *http.Request) {
+    // This also mutates the same logger
+    logctx.WithFields(r.Context(), suplog.Fields{
+        "request_id": "req-123",
+        "foo": "bar",
+    })
+
+    // You can also retrieve it to log here
+    logger := logctx.Logger(r.Context())
+    logger.Info("Handler executing") // This log will have user_id, request_id, etc.
+
+    w.Write([]byte("OK"))
+}
+```
+
+3. Retrieving the Logger
+   To get the current state of the logger at any time (e.g., for logging in a handler), use LoggerFromContext.
+This function is thread-safe and will always return the most up-to-date logger.
+```go
+logger := logctx.Logger(ctx)
+logger.Info("Hello")
+```
