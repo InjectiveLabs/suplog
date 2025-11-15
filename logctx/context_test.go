@@ -139,3 +139,19 @@ func TestContextLogHelpers(t *testing.T) {
 		require.Contains(t, lines[1], `msg="debug downgraded 2"`)
 	})
 }
+
+func TestEnsureLogger(t *testing.T) {
+	var recorder strings.Builder
+	logger := log.NewLogger(&recorder, new(log.TextFormatter))
+	ctx := context.Background()
+
+	// Should set the logger since none exists
+	ctxWithLogger := EnsureLogger(ctx, logger)
+	require.NotNil(t, Logger(ctxWithLogger))
+	require.Equal(t, logger, Logger(ctxWithLogger))
+
+	// Should NOT overwrite existing logger
+	anotherLogger := log.NewLogger(&strings.Builder{}, new(log.TextFormatter))
+	ctxWithLogger2 := EnsureLogger(ctxWithLogger, anotherLogger)
+	require.Equal(t, logger, Logger(ctxWithLogger2))
+}
