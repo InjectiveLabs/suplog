@@ -38,13 +38,13 @@ func TestContextLogging(t *testing.T) {
 			// to add fields we MUST use the context helpers
 			WithField(ctx, "pre", "true")
 
-				defer func() {
-					WithField(ctx, "defer", "true")
-					WithErr(ctx, err)
+			defer func() {
+				WithField(ctx, "defer", "true")
+				WithErr(ctx, err)
 
-					// recover the modified logger from context
-					Logger(ctx).Debug("chain executed")
-				}()
+				// recover the modified logger from context
+				Logger(ctx).Debug("chain executed")
+			}()
 
 			err = next(ctx)
 
@@ -102,4 +102,40 @@ func TestContextLogging(t *testing.T) {
 	assert.Contains(t, lines[1], "level=debug")
 	assert.Contains(t, lines[1], "msg=\"chain executed\"")
 	assert.NotContains(t, lines[1], "bubble-up=false")
+}
+
+func TestContextLogHelpers(t *testing.T) {
+	t.Run("Log helper keeps severity and honors overrides", func(t *testing.T) {
+		var recorder strings.Builder
+		logger := log.NewLogger(&recorder, new(log.TextFormatter))
+		ctx := WithLogger(context.Background(), logger)
+
+		Info(ctx, "info helper message")
+		ctx = WithLevel(ctx, log.InfoLevel)
+		Log(ctx, log.DebugLevel, "debug downgraded")
+
+		lines := strings.Split(strings.TrimSpace(recorder.String()), "\n")
+		require.Len(t, lines, 2)
+		require.Contains(t, lines[0], "level=info")
+		require.Contains(t, lines[0], `msg="info helper message"`)
+		require.Contains(t, lines[1], "level=info")
+		require.Contains(t, lines[1], `msg="debug downgraded"`)
+	})
+
+	t.Run("Logf helper keeps severity and honors overrides", func(t *testing.T) {
+		var recorder strings.Builder
+		logger := log.NewLogger(&recorder, new(log.TextFormatter))
+		ctx := WithLogger(context.Background(), logger)
+
+		Infof(ctx, "info helper %d", 1)
+		ctx = WithLevel(ctx, log.InfoLevel)
+		Logf(ctx, log.DebugLevel, "debug downgraded %d", 2)
+
+		lines := strings.Split(strings.TrimSpace(recorder.String()), "\n")
+		require.Len(t, lines, 2)
+		require.Contains(t, lines[0], "level=info")
+		require.Contains(t, lines[0], `msg="info helper 1"`)
+		require.Contains(t, lines[1], "level=info")
+		require.Contains(t, lines[1], `msg="debug downgraded 2"`)
+	})
 }
