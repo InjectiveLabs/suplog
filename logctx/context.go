@@ -23,6 +23,15 @@ func WithLogger(ctx context.Context, logger suplog.Logger) context.Context {
 	})
 }
 
+// EnsureLogger sets the logger in the context only if it doesn't already exist.
+// It's recommended to use this in middleware to avoid overwriting existing loggers.
+func EnsureLogger(ctx context.Context, logger suplog.Logger) context.Context {
+	if _, ok := fromContext(ctx); ok {
+		return ctx
+	}
+	return WithLogger(ctx, logger)
+}
+
 // WithErr adds an error field to the logger in the context (thread-safe).
 func WithErr(ctx context.Context, err error) context.Context {
 	l, ok := fromContext(ctx)
