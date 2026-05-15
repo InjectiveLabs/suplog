@@ -17,6 +17,9 @@ type loggerCtx struct {
 
 // WithLogger adds the logger to the context, wrapped in our thread-safe struct.
 func WithLogger(ctx context.Context, logger suplog.Logger) context.Context {
+	if logger == nil {
+		logger = suplog.DefaultLogger
+	}
 	return context.WithValue(ctx, ctxLogKey{}, &loggerCtx{
 		logger: logger,
 		level:  suplog.TraceLevel,

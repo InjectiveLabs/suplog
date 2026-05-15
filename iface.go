@@ -21,7 +21,7 @@ type Logger interface {
 
 	WithField(key string, value interface{}) Logger
 	WithFields(fields Fields) Logger
-	WithError(err error) Logger
+	WithError(err error, errLevel ...Level) Logger
 	WithContext(ctx context.Context) Logger
 	WithTime(t time.Time) Logger
 

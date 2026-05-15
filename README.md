@@ -84,6 +84,12 @@ An example of issuing a warning without changing the original error:
 log.WithError(err).Warnln("something wrong happened")
 ```
 
+An example of logging at the original level unless an error is present:
+
+```go
+log.WithError(err, suplog.WarnLevel).Debug("something may need attention")
+```
+
 ## Hooks
 
 During suplog initialisation it is possible to specify suplog hooks. Hooks are plugins that will pre-process log entries and do something useful. Below are several examples that are available to suplog users.

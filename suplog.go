@@ -142,9 +142,8 @@ func (l *suplogger) WithFields(fields Fields) Logger {
 	return outCopy
 }
 
-// Add an error as single field to the log entry.  All it does is call
-// `WithError` for the given `error`.
-func (l *suplogger) WithError(err error) Logger {
+// Add an error as single field to the log entry.
+func (l *suplogger) WithError(err error, errLevel ...Level) Logger {
 	if err == nil {
 		// nothing to add
 		return l
@@ -154,7 +153,10 @@ func (l *suplogger) WithError(err error) Logger {
 	outCopy := l.copy()
 	outCopy.entry = l.entry.WithError(err)
 
-	return outCopy
+	if len(errLevel) == 0 {
+		return outCopy
+	}
+	return outCopy.ErrLevel(errLevel[0])
 }
 
 // Add a context to the log entry.

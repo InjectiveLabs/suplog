@@ -65,8 +65,8 @@ func WithFields(fields Fields) Logger {
 	return DefaultLogger.WithFields(fields)
 }
 
-func WithError(err error) Logger {
-	return DefaultLogger.WithError(err)
+func WithError(err error, errLevel ...Level) Logger {
+	return DefaultLogger.WithError(err, errLevel...)
 }
 
 func WithContext(ctx context.Context) Logger {

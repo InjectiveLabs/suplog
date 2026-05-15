@@ -42,7 +42,7 @@ func (n NoOpLogger) WithFields(fields Fields) Logger {
 	return n
 }
 
-func (n NoOpLogger) WithError(err error) Logger {
+func (n NoOpLogger) WithError(err error, errLevel ...Level) Logger {
 	return n
 }
 
