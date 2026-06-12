@@ -247,9 +247,9 @@ ticker := time.NewTicker(1 * time.Minute)
 log.OnTime(ticker.C).WithField("foo", "bar").Info("This will log every minute at most")
 ```
 
-## Context Logger (`logcontext`)
+## Context Logger (`logctx`)
 
-This package provides a mechanism for storing a `suplog.Logger` within a `context.Context` and allowing it to be mutated (e.g., adding new fields) by downstream functions in a **thread-safe** manner.
+This package provides a mechanism for storing a `suplog.Logger` within a `context.Context`, adding fields scoped to derived contexts, and explicitly promoting selected fields back to the shared request logger.
 
 Usage
 1. Initialization (Top-Level Middleware)
@@ -263,10 +263,12 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
         // Put it in the context using the package
         ctx := logctx.WithLogger(r.Context(), baseLogger)
-        
-        // The defer runs last, after all other handlers
+
+        ctx = logctx.WithField(ctx, "svc", "foo-api")
+
+        // The defer runs last, after all other handlers.
         defer func() {
-            // Get the logger (which now has all fields) and log
+            // Get the logger for this scope and log.
             finalLogger := logctx.Logger(ctx)
             finalLogger.Info("Request finished")
         }()
@@ -276,36 +278,45 @@ func LoggingMiddleware(next http.Handler) http.Handler {
     })
 }
 ```
-2. Adding Fields (Downstream Middlewares/Handlers)
-   Any other function can now add fields. They do not need to create a new context, as the logger is mutated in place.
+2. Adding Scoped Fields (Downstream Middlewares/Handlers)
+   Any other function can add fields to its own context and contexts derived from it. Always use the returned context.
 
 ```go
 func AuthMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    // This mutates the logger in the context
-        logctx.WithField(r.Context(), "user_id", "user-abc")
-        next.ServeHTTP(w, r)
+        ctx := logctx.WithField(r.Context(), "user_id", "user-abc")
+        next.ServeHTTP(w, r.WithContext(ctx))
     })
 }
 
 func MyHandler(w http.ResponseWriter, r *http.Request) {
-    // This also mutates the same logger
-    logctx.WithFields(r.Context(), suplog.Fields{
+    ctx := logctx.WithFields(r.Context(), suplog.Fields{
         "request_id": "req-123",
         "foo": "bar",
     })
 
-    // You can also retrieve it to log here
-    logger := logctx.Logger(r.Context())
+    logger := logctx.Logger(ctx)
     logger.Info("Handler executing") // This log will have user_id, request_id, etc.
 
     w.Write([]byte("OK"))
 }
 ```
 
-3. Retrieving the Logger
-   To get the current state of the logger at any time (e.g., for logging in a handler), use LoggerFromContext.
-This function is thread-safe and will always return the most up-to-date logger.
+3. Promoting Fields for Return-Path Logs
+   Use promotion when an inner layer discovers a field that outer layers should log after the call returns.
+
+```go
+func MyHandler(w http.ResponseWriter, r *http.Request) {
+    ctx := logctx.PromoteField(r.Context(), "handler", "MyHandler")
+
+    dbCtx := logctx.WithField(ctx, "db_service", "foo-db")
+    logctx.Info(dbCtx, "Querying database") // includes handler and db_service
+}
+```
+
+4. Retrieving the Logger
+   To get the logger for the current scope, use `logctx.Logger`.
+
 ```go
 logger := logctx.Logger(ctx)
 logger.Info("Hello")
