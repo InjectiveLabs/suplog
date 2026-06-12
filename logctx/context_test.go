@@ -15,13 +15,15 @@ type handler func(ctx context.Context) error
 
 func fieldMiddleware(key string, value interface{}, next handler) handler {
 	return func(ctx context.Context) error {
-		return next(WithField(ctx, key, value))
+		ctx = WithField(ctx, key, value)
+		return next(ctx)
 	}
 }
 
 func fieldsMiddleware(key string, value interface{}, next handler) handler {
 	return func(ctx context.Context) error {
-		return next(WithFields(ctx, log.Fields{key: value}))
+		ctx = WithFields(ctx, log.Fields{key: value})
+		return next(ctx)
 	}
 }
 
@@ -35,20 +37,20 @@ func TestContextLogging(t *testing.T) {
 			// before any other modifications
 			ctx = WithLogger(ctx, l)
 
-			// to add fields we MUST use the context helpers
-			WithField(ctx, "pre", "true")
+			// scoped fields apply to this context and contexts derived from it.
+			ctx = WithField(ctx, "pre", "true")
 
 			defer func() {
-				WithField(ctx, "defer", "true")
-				WithErr(ctx, err)
+				ctx = WithField(ctx, "defer", "true")
+				ctx = WithErr(ctx, err)
 
-				// recover the modified logger from context
+				// recover the logger for this scope.
 				Logger(ctx).Debug("chain executed")
 			}()
 
 			err = next(ctx)
 
-			WithField(ctx, "post", "true")
+			ctx = WithField(ctx, "post", "true")
 
 			return err
 		}
@@ -61,7 +63,7 @@ func TestContextLogging(t *testing.T) {
 				func(ctx context.Context) error { // this is the end handler
 
 					// this adds a field into the context logger
-					WithField(ctx, "name", "John")
+					ctx = WithField(ctx, "name", "John")
 
 					// this log will contain all prior fields but
 					// will NOT bubble up the "buble-up" field
@@ -96,47 +98,137 @@ func TestContextLogging(t *testing.T) {
 	assert.Contains(t, lines[1], "pre=true")
 	assert.Contains(t, lines[1], "post=true")
 	assert.Contains(t, lines[1], "defer=true")
-	assert.Contains(t, lines[1], "one=1")
-	assert.Contains(t, lines[1], "two=2")
-	assert.Contains(t, lines[1], "name=John")
+	assert.NotContains(t, lines[1], "one=")
+	assert.NotContains(t, lines[1], "two=")
+	assert.NotContains(t, lines[1], "name=")
 	assert.Contains(t, lines[1], "level=debug")
 	assert.Contains(t, lines[1], "msg=\"chain executed\"")
 	assert.NotContains(t, lines[1], "bubble-up=false")
 }
 
+func TestPromotedFieldsSurviveReturnPath(t *testing.T) {
+	var recorder strings.Builder
+	logger := log.NewLogger(&recorder, new(log.TextFormatter))
+
+	ctx := WithLogger(context.Background(), logger)
+	ctx = WithField(ctx, "svc", "foo-api")
+
+	grpcCtx := WithField(ctx, "method", "ListFoo")
+	handlerCtx := PromoteField(grpcCtx, "handler", "ListFooHandler")
+
+	dbCtx := WithField(handlerCtx, "db_service", "foo-db")
+	Info(dbCtx, "db query")
+
+	Logger(grpcCtx).Info("grpc finished")
+
+	lines := strings.Split(strings.TrimSpace(recorder.String()), "\n")
+	require.Len(t, lines, 2)
+
+	assert.Contains(t, lines[0], "svc=foo-api")
+	assert.Contains(t, lines[0], "method=ListFoo")
+	assert.Contains(t, lines[0], "handler=ListFooHandler")
+	assert.Contains(t, lines[0], "db_service=foo-db")
+	assert.Contains(t, lines[0], `msg="db query"`)
+
+	assert.Contains(t, lines[1], "svc=foo-api")
+	assert.Contains(t, lines[1], "method=ListFoo")
+	assert.Contains(t, lines[1], "handler=ListFooHandler")
+	assert.NotContains(t, lines[1], "db_service=")
+	assert.Contains(t, lines[1], `msg="grpc finished"`)
+}
+
+func TestScopedFieldsRequireReturnedContext(t *testing.T) {
+	var recorder strings.Builder
+	logger := log.NewLogger(&recorder, new(log.TextFormatter))
+	ctx := WithLogger(context.Background(), logger)
+
+	WithField(ctx, "ignored", true)
+	Info(ctx, "without returned context")
+
+	ctx = WithField(ctx, "kept", true)
+	Info(ctx, "with returned context")
+
+	lines := strings.Split(strings.TrimSpace(recorder.String()), "\n")
+	require.Len(t, lines, 2)
+
+	assert.NotContains(t, lines[0], "ignored=")
+	assert.NotContains(t, lines[0], "kept=")
+	assert.Contains(t, lines[1], "kept=true")
+	assert.NotContains(t, lines[1], "ignored=")
+}
+
+func TestSiblingScopesAreIsolated(t *testing.T) {
+	var recorder strings.Builder
+	logger := log.NewLogger(&recorder, new(log.TextFormatter))
+	ctx := WithLogger(context.Background(), logger)
+	ctx = WithField(ctx, "request_id", "req-123")
+
+	left := WithField(ctx, "branch", "left")
+	right := WithField(ctx, "branch", "right")
+
+	Info(left, "left branch")
+	Info(right, "right branch")
+
+	lines := strings.Split(strings.TrimSpace(recorder.String()), "\n")
+	require.Len(t, lines, 2)
+
+	assert.Contains(t, lines[0], "request_id=req-123")
+	assert.Contains(t, lines[0], "branch=left")
+	assert.NotContains(t, lines[0], "branch=right")
+
+	assert.Contains(t, lines[1], "request_id=req-123")
+	assert.Contains(t, lines[1], "branch=right")
+	assert.NotContains(t, lines[1], "branch=left")
+}
+
+func TestPromotedFieldsAreVisibleToSiblings(t *testing.T) {
+	var recorder strings.Builder
+	logger := log.NewLogger(&recorder, new(log.TextFormatter))
+	ctx := WithLogger(context.Background(), logger)
+
+	left := WithField(ctx, "branch", "left")
+	right := WithField(ctx, "branch", "right")
+
+	PromoteFields(left, log.Fields{"handler": "ListFooHandler"})
+	Info(right, "right branch")
+
+	lines := strings.Split(strings.TrimSpace(recorder.String()), "\n")
+	require.Len(t, lines, 1)
+
+	assert.Contains(t, lines[0], "handler=ListFooHandler")
+	assert.Contains(t, lines[0], "branch=right")
+	assert.NotContains(t, lines[0], "branch=left")
+}
+
 func TestContextLogHelpers(t *testing.T) {
-	t.Run("Log helper keeps severity and honors overrides", func(t *testing.T) {
+	t.Run("Log helper uses the contextual logger", func(t *testing.T) {
 		var recorder strings.Builder
 		logger := log.NewLogger(&recorder, new(log.TextFormatter))
 		ctx := WithLogger(context.Background(), logger)
+		ctx = WithField(ctx, "helper", "log")
 
 		Info(ctx, "info helper message")
-		ctx = WithLevel(ctx, log.InfoLevel)
-		Log(ctx, log.DebugLevel, "debug downgraded")
 
 		lines := strings.Split(strings.TrimSpace(recorder.String()), "\n")
-		require.Len(t, lines, 2)
+		require.Len(t, lines, 1)
 		require.Contains(t, lines[0], "level=info")
+		require.Contains(t, lines[0], "helper=log")
 		require.Contains(t, lines[0], `msg="info helper message"`)
-		require.Contains(t, lines[1], "level=info")
-		require.Contains(t, lines[1], `msg="debug downgraded"`)
 	})
 
-	t.Run("Logf helper keeps severity and honors overrides", func(t *testing.T) {
+	t.Run("Logf helper uses the contextual logger", func(t *testing.T) {
 		var recorder strings.Builder
 		logger := log.NewLogger(&recorder, new(log.TextFormatter))
 		ctx := WithLogger(context.Background(), logger)
+		ctx = WithField(ctx, "helper", "logf")
 
 		Infof(ctx, "info helper %d", 1)
-		ctx = WithLevel(ctx, log.InfoLevel)
-		Logf(ctx, log.DebugLevel, "debug downgraded %d", 2)
 
 		lines := strings.Split(strings.TrimSpace(recorder.String()), "\n")
-		require.Len(t, lines, 2)
+		require.Len(t, lines, 1)
 		require.Contains(t, lines[0], "level=info")
+		require.Contains(t, lines[0], "helper=logf")
 		require.Contains(t, lines[0], `msg="info helper 1"`)
-		require.Contains(t, lines[1], "level=info")
-		require.Contains(t, lines[1], `msg="debug downgraded 2"`)
 	})
 }
 
